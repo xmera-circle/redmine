@@ -1306,11 +1306,11 @@ de:
   label_import_time_entries: Zeitbuchungen importieren
   field_toolbar_language_options: Sprachen für Code-Hervorhebung, Editor-Symbolleiste
   label_assign_to_me: Mir zuweisen
-  notice_issue_not_closable_by_open_tasks: Dieses Ticket kann nicht geschlossen werden da
-    mindest ein untergeordnetes Ticket noch geöffnet ist.
-  notice_issue_not_closable_by_blocking_issue: Dieses Ticket kann nicht geschlossen werden
+  notice_issue_not_closable_by_open_tasks: Dieses Ticket kann nicht geschlossen werden, da
+    mindestens ein untergeordnetes Ticket noch geöffnet ist.
+  notice_issue_not_closable_by_blocking_issue: Dieses Ticket kann nicht geschlossen werden,
     da es noch von mindestens einem geöffneten Ticket blockiert wird.
-  notice_issue_not_reopenable_by_closed_parent_issue: Dieses Ticket kann nicht wiedereröffnet werden
+  notice_issue_not_reopenable_by_closed_parent_issue: Dieses Ticket kann nicht wiedereröffnet werden,
     da das übergeordnete Ticket bereits geschlossen wurde.
   error_bulk_download_size_too_big: Das Herunterladen dieser Anhänge in aggregierter Form ist nicht möglich,
     da die Dateigröße des aggregierten Downloads die erlaubte Maximalgröße (%{max_size}) überschreitet.
@@ -1360,7 +1360,7 @@ de:
   error_can_not_execute_macro_html: Fehler bei der Ausführung des Makros <strong>%{name}</strong>
     (%{error})
   error_macro_does_not_accept_block: Dieses Makro akzeptiert keinen Textblock
-  error_childpages_macro_no_argument: Ohne Angabe eines Arguments kann dieses Makro nur von Wikiseiten aus augerufen werden
+  error_childpages_macro_no_argument: Ohne Angabe eines Arguments kann dieses Makro nur von Wikiseiten aus aufgerufen werden
   error_circular_inclusion: Zirkuläre Einbindung erkannt
   error_page_not_found: Seite nicht gefunden
   error_filename_required: Dateiname benötigt
