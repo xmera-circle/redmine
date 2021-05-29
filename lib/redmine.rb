@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Redmine - project management software
-# Copyright (C) 2006-2020  Jean-Philippe Lang
+# Copyright (C) 2006-2021  Jean-Philippe Lang
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -162,13 +162,16 @@ Redmine::AccessControl.map do |map|
   end
 
   map.project_module :wiki do |map|
-    map.permission :view_wiki_pages, {:wiki => [:index, :show, :special, :date_index]}, :read => true
+    map.permission :view_wiki_pages, {:wiki => [:index, :show, :special, :date_index], :auto_complete => [:wiki_pages]}, :read => true
     map.permission :view_wiki_edits, {:wiki => [:history, :diff, :annotate]}, :read => true
     map.permission :export_wiki_pages, {:wiki => [:export]}, :read => true
     map.permission :edit_wiki_pages, :wiki => [:new, :edit, :update, :preview, :add_attachment], :attachments => :upload
     map.permission :rename_wiki_pages, {:wiki => :rename}, :require => :member
     map.permission :delete_wiki_pages, {:wiki => [:destroy, :destroy_version]}, :require => :member
     map.permission :delete_wiki_pages_attachments, {}
+    map.permission :view_wiki_page_watchers, {}, :read => true
+    map.permission :add_wiki_page_watchers, {:watchers => [:new, :create, :autocomplete_for_user]}
+    map.permission :delete_wiki_page_watchers, {:watchers => :destroy}
     map.permission :protect_wiki_pages, {:wiki => :protect}, :require => :member
     map.permission :manage_wiki, {:wikis => [:edit, :destroy], :wiki => :rename}, :require => :member
   end
@@ -178,7 +181,7 @@ Redmine::AccessControl.map do |map|
     map.permission :browse_repository, {:repositories => [:show, :browse, :entry, :raw, :annotate, :changes, :diff, :stats, :graph]}, :read => true
     map.permission :commit_access, {}
     map.permission :manage_related_issues, {:repositories => [:add_related_issue, :remove_related_issue]}
-    map.permission :manage_repository, {:projects => :settings, :repositories => [:new, :create, :edit, :update, :committers, :destroy]}, :require => :member
+    map.permission :manage_repository, {:projects => :settings, :repositories => [:new, :create, :edit, :update, :committers, :destroy, :fetch_changesets]}, :require => :member
   end
 
   map.project_module :boards do |map|
@@ -188,6 +191,9 @@ Redmine::AccessControl.map do |map|
     map.permission :edit_own_messages, {:messages => :edit, :attachments => :upload}, :require => :loggedin
     map.permission :delete_messages, {:messages => :destroy}, :require => :member
     map.permission :delete_own_messages, {:messages => :destroy}, :require => :loggedin
+    map.permission :view_message_watchers, {}, :read => true
+    map.permission :add_message_watchers, {:watchers => [:new, :create, :autocomplete_for_user]}
+    map.permission :delete_message_watchers, {:watchers => :destroy}
     map.permission :manage_boards, {:projects => :settings, :boards => [:new, :create, :edit, :update, :destroy]}, :require => :member
   end
 
@@ -225,7 +231,7 @@ Redmine::MenuManager.map :application_menu do |menu|
   menu.push :projects, {:controller => 'projects', :action => 'index'},
             :permission => nil,
             :caption => :label_project_plural
-  menu.push :activity, {:controller => 'activities', :action => 'index'}
+  menu.push :activity, {:controller => 'activities', :action => 'index', :id => nil}
   menu.push(
     :issues,
     {:controller => 'issues', :action => 'index'},
@@ -364,10 +370,10 @@ Redmine::MenuManager.map :project_menu do |menu|
     :param => :project_id,
     :if =>
       Proc.new do |p|
-        if Setting.display_subprojects_issues?
-          p.rolled_up_versions.any?
+        if p.shared_versions.any?
+          true
         else
-          p.shared_versions.any?
+          Setting.display_subprojects_issues? && p.rolled_up_versions.any?
         end
       end
   )
@@ -417,7 +423,7 @@ Redmine::Activity.map do |activity|
   activity.register :news
   activity.register :documents, :class_name => %w(Document Attachment)
   activity.register :files, :class_name => 'Attachment'
-  activity.register :wiki_edits, :class_name => 'WikiContent::Version', :default => false
+  activity.register :wiki_edits, :class_name => 'WikiContentVersion', :default => false
   activity.register :messages, :default => false
   activity.register :time_entries, :default => false
 end

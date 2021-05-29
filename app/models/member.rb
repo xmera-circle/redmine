@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Redmine - project management software
-# Copyright (C) 2006-2020  Jean-Philippe Lang
+# Copyright (C) 2006-2021  Jean-Philippe Lang
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -25,7 +25,7 @@ class Member < ActiveRecord::Base
   belongs_to :project
 
   validates_presence_of :principal, :project
-  validates_uniqueness_of :user_id, :scope => :project_id
+  validates_uniqueness_of :user_id, :scope => :project_id, :case_sensitive => true
   validate :validate_role
 
   before_destroy :set_issue_category_nil, :remove_from_project_default_assigned_to
@@ -76,6 +76,8 @@ class Member < ActiveRecord::Base
     if member_roles_to_destroy.any?
       member_roles_to_destroy.each(&:destroy)
     end
+    member_roles.reload
+    super(ids)
   end
 
   def <=>(member)

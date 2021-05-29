@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Redmine - project management software
-# Copyright (C) 2006-2020  Jean-Philippe Lang
+# Copyright (C) 2006-2021  Jean-Philippe Lang
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -803,6 +803,47 @@ class QueryTest < ActiveSupport::TestCase
     end
   end
 
+  def test_filter_notes
+    user = User.generate!
+    Journal.create!(:user_id => user.id, :journalized => Issue.find(2), :notes => 'Notes.')
+    Journal.create!(:user_id => user.id, :journalized => Issue.find(3), :notes => 'Notes.')
+
+    issue_journals = Issue.find(1).journals.sort
+    assert_equal ['Journal notes', 'Some notes with Redmine links: #2, r2.'], issue_journals.map(&:notes)
+    assert_equal [false, false], issue_journals.map(&:private_notes)
+
+    query = IssueQuery.new(:name => '_')
+    filter_name = 'notes'
+    assert_include filter_name, query.available_filters.keys
+
+    {
+      '~' => [1, 2, 3],
+      '!~' => Issue.ids.sort - [1, 2, 3],
+      '^' => [2, 3],
+      '$' => [1],
+    }.each do |operator, expected|
+      query.filters = {filter_name => {:operator => operator, :values => ['Notes']}}
+      assert_equal expected, find_issues_with_query(query).map(&:id).sort
+    end
+  end
+
+  def test_filter_notes_should_ignore_private_notes_that_are_not_visible
+    user = User.generate!
+    Journal.create!(:user_id => user.id, :journalized => Issue.find(2), :notes => 'Notes.', :private_notes => true)
+    Journal.create!(:user_id => user.id, :journalized => Issue.find(3), :notes => 'Notes.')
+
+    issue_journals = Issue.find(1).journals.sort
+    assert_equal ['Journal notes', 'Some notes with Redmine links: #2, r2.'], issue_journals.map(&:notes)
+    assert_equal [false, false], issue_journals.map(&:private_notes)
+
+    query = IssueQuery.new(:name => '_')
+    filter_name = 'notes'
+    assert_include filter_name, query.available_filters.keys
+
+    query.filters = {filter_name => {:operator => '~', :values => ['Notes']}}
+    assert_equal [1, 3], find_issues_with_query(query).map(&:id).sort
+  end
+
   def test_filter_updated_by
     user = User.generate!
     Journal.create!(:user_id => user.id, :journalized => Issue.find(2), :notes => 'Notes')
@@ -1519,6 +1560,19 @@ class QueryTest < ActiveSupport::TestCase
     end
   end
 
+  def test_available_filters_as_json_should_not_include_duplicate_assigned_to_id_values
+    set_language_if_valid 'en'
+    user = User.find_by_login 'dlopper'
+    with_current_user User.find(1) do
+      q = IssueQuery.new
+      q.filters = {"assigned_to_id" => {:operator => '=', :values => user.id.to_s}}
+
+      filters = q.available_filters_as_json
+      assert_not_include [user.name, user.id.to_s], filters['assigned_to_id']['values']
+      assert_include [user.name, user.id.to_s, 'active'], filters['assigned_to_id']['values']
+    end
+  end
+
   def test_available_filters_as_json_should_include_missing_author_id_values
     user = User.generate!
     with_current_user User.find(1) do
@@ -1705,6 +1759,16 @@ class QueryTest < ActiveSupport::TestCase
 
     q = IssueQuery.new
     assert !q.sortable_columns['cf_1']
+  end
+
+  def test_sortable_should_return_false_for_multi_custom_field
+    field = CustomField.find(1)
+    field.update_attribute :multiple, true
+
+    q = IssueQuery.new
+
+    field_column = q.available_columns.detect {|c| c.name==:cf_1}
+    assert !field_column.sortable?
   end
 
   def test_default_sort

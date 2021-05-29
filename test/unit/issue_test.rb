@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Redmine - project management software
-# Copyright (C) 2006-2020  Jean-Philippe Lang
+# Copyright (C) 2006-2021  Jean-Philippe Lang
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -216,6 +216,17 @@ class IssueTest < ActiveSupport::TestCase
 
   def assert_visibility_match(user, issues)
     assert_equal issues.collect(&:id).sort, Issue.all.select {|issue| issue.visible?(user)}.collect(&:id).sort
+  end
+
+  def test_create_with_emoji_character
+    skip if Redmine::Database.mysql? && !is_mysql_utf8mb4
+
+    set_language_if_valid 'en'
+    issue = Issue.new(:project_id => 1, :tracker_id => 1,
+                      :author_id => 1, :subject => 'Group assignment',
+                      :description => 'Hello 😀')
+    assert issue.save
+    assert_equal 'Hello 😀', issue.description
   end
 
   def test_visible_scope_for_anonymous
@@ -1429,7 +1440,7 @@ class IssueTest < ActiveSupport::TestCase
     copy = issue.reload.copy
     assert_difference 'Issue.count', 1+issue.descendants.count do
       assert copy.save
-      assert copy.save
+      assert copy.reload.save
     end
   end
 
@@ -1498,6 +1509,23 @@ class IssueTest < ActiveSupport::TestCase
     end
 
     assert_equal [3, nil], copy.children.map(&:assigned_to_id)
+  end
+
+  def test_copy_should_not_add_attachments_to_journal
+    set_tmp_attachments_directory
+    issue = Issue.generate!
+    copy = Issue.new
+    copy.init_journal User.find(1)
+    copy.copy_from issue
+
+    copy.project = issue.project
+    copy.save_attachments(
+      { 'p0' => {'file' => mock_file_with_options(:original_filename => 'upload')} }
+    )
+    assert copy.save
+    assert j = copy.journals.last
+    assert_equal 1, j.details.size
+    assert_equal 'relation', j.details[0].property
   end
 
   def test_should_not_call_after_project_change_on_creation
@@ -2474,6 +2502,7 @@ class IssueTest < ActiveSupport::TestCase
     relation = new_record(IssueRelation) do
       copy.save!
     end
+    copy.reload
 
     copy.parent_issue_id = parent.id
     assert_save copy
@@ -2728,7 +2757,7 @@ class IssueTest < ActiveSupport::TestCase
                                      :possible_values => ['value1', 'value2', 'value3'],
                                      :multiple => true)
 
-    issue = Issue.create!(:project_id => 1, :tracker_id => 1,
+    issue = Issue.generate!(:project_id => 1, :tracker_id => 1,
                           :subject => 'Test', :author_id => 1)
 
     assert_difference 'Journal.count' do

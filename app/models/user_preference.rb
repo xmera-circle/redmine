@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Redmine - project management software
-# Copyright (C) 2006-2020  Jean-Philippe Lang
+# Copyright (C) 2006-2021  Jean-Philippe Lang
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -52,7 +52,7 @@ class UserPreference < ActiveRecord::Base
         self.time_zone = Setting.default_users_time_zone
       end
       unless attributes && attributes.key?(:no_self_notified)
-        self.no_self_notified = true
+        self.no_self_notified = Setting.default_users_no_self_notified
       end
     end
     self.others ||= {}

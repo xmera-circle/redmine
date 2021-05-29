@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Redmine - project management software
-# Copyright (C) 2006-2020  Jean-Philippe Lang
+# Copyright (C) 2006-2021  Jean-Philippe Lang
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -203,7 +203,7 @@ class ProjectsControllerTest < Redmine::ControllerTest
     with_settings :date_format => '%m/%d/%Y' do
       get :index, :params => {:format => 'csv'}
       assert_response :success
-      assert_equal 'text/csv', response.media_type
+      assert_equal 'text/csv; header=present', response.media_type
     end
   end
 
@@ -913,6 +913,28 @@ class ProjectsControllerTest < Redmine::ControllerTest
     )
     assert_response :success
     assert_select 'select#project_custom_field_values_3', :count => 0
+  end
+
+  def test_settings_issue_tracking
+    @request.session[:user_id] = 1
+    project = Project.find(1)
+    project.default_version_id = 3
+    project.save!
+
+    get(
+      :settings,
+      :params => {
+        :id => 'ecookbook',
+        :tab => 'issues',
+      }
+    )
+    assert_response :success
+
+    assert_select 'form[id=?]', 'project_issue_tracking', 1
+    assert_select 'input[name=?]', 'project[tracker_ids][]'
+    assert_select 'input[name=?]', 'project[issue_custom_field_ids][]'
+    assert_select 'select[name=?]', 'project[default_version_id]', 1
+    assert_select 'select[name=?]', 'project[default_assigned_to_id]', 1
   end
 
   def test_update

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Redmine - project management software
-# Copyright (C) 2006-2020  Jean-Philippe Lang
+# Copyright (C) 2006-2021  Jean-Philippe Lang
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -665,7 +665,7 @@ class User < Principal
       return @project_ids_by_role if @project_ids_by_role
 
       group_class = anonymous? ? GroupAnonymous.unscoped : GroupNonMember.unscoped
-      group_id = group_class.pluck(:id).first
+      group_id = group_class.pick(:id)
 
       members = Member.joins(:project, :member_roles).
         where("#{Project.table_name}.status <> 9").
@@ -948,7 +948,7 @@ class User < Principal
     Token.where('user_id = ?', id).delete_all
     Watcher.where('user_id = ?', id).delete_all
     WikiContent.where(['author_id = ?', id]).update_all(['author_id = ?', substitute.id])
-    WikiContent::Version.where(['author_id = ?', id]).update_all(['author_id = ?', substitute.id])
+    WikiContentVersion.where(['author_id = ?', id]).update_all(['author_id = ?', substitute.id])
   end
 
   # Singleton class method is public

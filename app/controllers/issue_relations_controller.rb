@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Redmine - project management software
-# Copyright (C) 2006-2020  Jean-Philippe Lang
+# Copyright (C) 2006-2021  Jean-Philippe Lang
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -107,7 +107,14 @@ class IssueRelationsController < ApplicationController
   end
 
   def relation_issues_to_id
-    params[:relation].require(:issue_to_id).split(',').reject(&:blank?)
+    issue_to_id = params[:relation].require(:issue_to_id)
+    case issue_to_id
+    when String
+      issue_to_id = issue_to_id.split(',').reject(&:blank?)
+    when Integer
+      issue_to_id = [issue_to_id]
+    end
+    issue_to_id
   rescue ActionController::ParameterMissing => e
     # We return a empty array just to loop once and return a validation error
     # ToDo: Find a better method to return an error if the param is missing.

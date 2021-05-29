@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Redmine - project management software
-# Copyright (C) 2006-2020  Jean-Philippe Lang
+# Copyright (C) 2006-2021  Jean-Philippe Lang
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -25,6 +25,8 @@ class RolesController < ApplicationController
   before_action :require_admin_or_api_request, :only => [:index, :show]
   before_action :find_role, :only => [:show, :edit, :update, :destroy]
   accept_api_auth :index, :show
+
+  include RolesHelper
 
   require_sudo_mode :create, :update, :destroy
 
@@ -108,7 +110,13 @@ class RolesController < ApplicationController
       scope = scope.where(:id => params[:ids])
     end
     @roles = scope.to_a
-    @permissions = Redmine::AccessControl.permissions.select {|p| !p.public?}
+    @permissions = Redmine::AccessControl.permissions.reject(&:public?)
+    respond_to do |format|
+      format.html
+      format.csv do
+        send_data(permissions_to_csv(@roles, @permissions), :type => 'text/csv; header=present', :filename => 'permissions.csv')
+      end
+    end
   end
 
   def update_permissions

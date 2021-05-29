@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Redmine - project management software
-# Copyright (C) 2006-2020  Jean-Philippe Lang
+# Copyright (C) 2006-2021  Jean-Philippe Lang
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -87,6 +87,7 @@ class ActivitiesControllerTest < Redmine::ControllerTest
     assert_response :success
 
     assert_select 'h2 a[href="/users/2"]', :text => 'John Smith'
+    assert_select '#sidebar select#user_id option[value="2"][selected=selected]'
 
     i1 = Issue.find(1)
     d1 = User.find(1).time_to_date(i1.created_on)
@@ -121,6 +122,22 @@ class ActivitiesControllerTest < Redmine::ControllerTest
       assert_select 'entry' do
         assert_select 'link[href=?]', 'http://test.host/issues/11'
       end
+    end
+  end
+
+  def test_index_atom_feed_should_respect_feeds_limit_setting
+    with_settings :feeds_limit => '20' do
+      get(
+        :index,
+        :params => {
+          :format => 'atom'
+        }
+      )
+    end
+    assert_response :success
+
+    assert_select 'feed' do
+      assert_select 'entry', :count => 20
     end
   end
 

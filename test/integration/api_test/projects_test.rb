@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Redmine - project management software
-# Copyright (C) 2006-2020  Jean-Philippe Lang
+# Copyright (C) 2006-2021  Jean-Philippe Lang
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -152,6 +152,33 @@ class Redmine::ApiTest::ProjectsTest < Redmine::ApiTest::Base
     assert_equal 'application/xml', @response.media_type
 
     assert_select 'trackers[type=array] tracker[id="2"][name="Feature request"]'
+  end
+
+  test "GET /projects/:id.xml with include=trackers should return trackers based on role-based permissioning" do
+    project = Project.find(1)
+    assert_equal [1, 2, 3], project.tracker_ids
+
+    role = Role.find(3) # Reporter
+    role.permissions_all_trackers = {'view_issues' => '0'}
+    role.permissions_tracker_ids = {'view_issues' => ['1']}
+    role.save!
+
+    user = User.find_by(:login => 'jsmith')
+    member = project.members.detect{|m| m.user == user}
+    member.roles.delete_all
+    member.role_ids = [role.id]
+    member.roles.reload
+    assert_equal [role.id], member.role_ids
+
+    get '/projects/1.xml?include=trackers', :headers => credentials(user.login)
+    assert_response :success
+    assert_equal 'application/xml', @response.media_type
+
+    assert_select 'trackers[type=array]' do
+      assert_select 'tracker[id="1"]', :count => 1
+      assert_select 'tracker[id="2"]', :count => 0
+      assert_select 'tracker[id="3"]', :count => 0
+    end
   end
 
   test "GET /projects/:id.xml with include=enabled_modules should return enabled modules" do

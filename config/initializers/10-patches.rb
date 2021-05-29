@@ -53,12 +53,14 @@ module ActionView
 
   class Resolver
     def find_all(name, prefix=nil, partial=false, details={}, key=nil, locals=[])
+      locals = locals.map(&:to_s).sort!.freeze
+
       cached(key, [name, prefix, partial], details, locals) do
         if (details[:formats] & [:xml, :json]).any?
           details = details.dup
           details[:formats] = details[:formats].dup + [:api]
         end
-        find_templates(name, prefix, partial, details)
+        _find_all(name, prefix, partial, details, key, locals)
       end
     end
   end
@@ -209,6 +211,20 @@ module ActionView
             asset_id
           end
         end
+      end
+    end
+  end
+end
+
+# https://github.com/rack/rack/pull/1703
+# TODO: remove this when Rack is updated to 3.0.0
+require 'rack'
+module Rack
+  class RewindableInput
+    unless method_defined?(:size)
+      def size
+        make_rewindable unless @rewindable_io
+        @rewindable_io.size
       end
     end
   end

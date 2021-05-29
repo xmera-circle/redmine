@@ -224,7 +224,7 @@ bg:
   warning_attachments_not_saved: "%{count} файла не бяха записани."
   error_password_expired: Вашата парола е с изтекъл срок или администраторът изисква да я смените.
   error_invalid_file_encoding: Файлът няма валидно %{encoding} кодиране.
-  error_invalid_csv_file_or_settings: Файлът не е CSV файл или не съответства на зададеното по-долу
+  error_invalid_csv_file_or_settings: Файлът не е CSV файл или не съответства на зададеното по-долу (%{value})
   error_can_not_read_import_file: Грешка по време на четене на импортирания файл
   error_attachment_extension_not_allowed: Файлове от тип %{extension} не са позволени
   error_ldap_bind_credentials: Невалидни LDAP име/парола
@@ -246,6 +246,8 @@ bg:
   error_filename_required: Изисква се име на файл
   error_invalid_size_parameter: Невалиден параметър за размер
   error_attachment_not_found: Прикаченият файл  %{name} не е намерен
+  error_invalid_authenticity_token: Invalid form authenticity token.
+  error_query_statement_invalid: Изпълнението на заявката завърши с грешка и тя беше записана. Моля докладвайте тази грешка на администратора на Redmine.
 
   mail_subject_lost_password: "Вашата парола (%{value})"
   mail_body_lost_password: 'За да смените паролата си, използвайте следния линк:'
@@ -573,6 +575,9 @@ bg:
   permission_edit_own_messages: Редактиране на собствени съобщения
   permission_delete_messages: Изтриване на съобщения
   permission_delete_own_messages: Изтриване на собствени съобщения
+  permission_view_message_watchers: Разглеждане на списъка на наблюдателите на съобщения
+  permission_add_message_watchers: Добавяне на наблюдатели на съобщения
+  permission_delete_message_watchers: Изтриване на наблюдатели на съобщения
   permission_export_wiki_pages: Експорт на wiki страници
   permission_manage_subtasks: Управление на подзадачите
   permission_manage_related_issues: Управление на връзките между задачи и ревизии
@@ -956,6 +961,7 @@ bg:
   label_incoming_emails: Входящи e-mail-и
   label_generate_key: Генериране на ключ
   label_issue_watchers: Наблюдатели
+  label_message_watchers: Наблюдатели
   label_example: Пример
   label_display: Показване
   label_sort: Сортиране
@@ -1149,7 +1155,9 @@ bg:
   button_change_password: Промяна на парола
   button_copy: Копиране
   button_copy_and_follow: Копиране и продължаване
+  button_copy_link: Копиране на връзката
   button_annotate: Анотация
+  button_fetch_changesets: Извличане на ревизиите
   button_update: Обновяване
   button_configure: Конфигуриране
   button_quote: Цитат
@@ -1183,7 +1191,6 @@ bg:
 
   text_select_mail_notifications: Изберете събития за изпращане на e-mail.
   text_regexp_info: пр. ^[A-Z0-9]+$
-  text_min_max_length_info: 0 - без ограничения
   text_project_destroy_confirmation: Сигурни ли сте, че искате да изтриете проекта и данните в него?
   text_subprojects_destroy_warning: "Неговите подпроекти: %{value} също ще бъдат изтрити."
   text_workflow_edit: Изберете роля и тракер за да редактирате работния процес
@@ -1364,3 +1371,7 @@ bg:
     Това действие не може да бъде отменено. Често заключването на потребителя е по-добро решение от изтриването му.
     За да потвърдите, въведете името (%{login}) по-долу.
   text_project_destroy_enter_identifier: За да потвърдите действието, въведете идентификатора на проекта (%{identifier}) по-долу.
+  permission_view_wiki_page_watchers: View wiki page watchers list
+  permission_add_wiki_page_watchers: Add wiki page watchers
+  permission_delete_wiki_page_watchers: Delete wiki page watchers
+  label_wiki_page_watchers: Watchers

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Redmine - project management software
-# Copyright (C) 2006-2020  Jean-Philippe Lang
+# Copyright (C) 2006-2021  Jean-Philippe Lang
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -225,9 +225,8 @@ class MailHandler < ActionMailer::Base
 
     # check permission
     unless handler_options[:no_permission_check]
-      unless user.allowed_to?(:add_issue_notes, issue.project) ||
-               user.allowed_to?(:edit_issues, issue.project)
-        raise UnauthorizedAction, "not allowed to add notes on issues to project [#{project.name}]"
+      unless issue.notes_addable?
+        raise UnauthorizedAction, "not allowed to add notes on issues to project [#{issue.project.name}]"
       end
     end
 
@@ -276,7 +275,7 @@ class MailHandler < ActionMailer::Base
     end
 
     unless handler_options[:no_permission_check]
-      raise UnauthorizedAction, "not allowed to add messages to project [#{project.name}]" unless user.allowed_to?(:add_messages, message.project)
+      raise UnauthorizedAction, "not allowed to add messages to project [#{message.project.name}]" unless user.allowed_to?(:add_messages, message.project)
     end
 
     if !message.locked?
@@ -622,10 +621,21 @@ class MailHandler < ActionMailer::Base
       rescue RegexpError => e
         logger&.error "MailHandler: invalid regexp delimiter found in mail_handler_body_delimiters setting (#{e.message})"
       end
+    else
+      # In a "normal" delimiter, allow a single space from the originally
+      # defined delimiter to match:
+      #   * any space-like character, or
+      #   * line-breaks and optional quoting with arbitrary spacing around it
+      # in the mail in order to allow line breaks of delimiters.
+      delimiters = delimiters.map do |delimiter|
+        delimiter = Regexp.escape(delimiter).encode!(Encoding::UTF_8)
+        delimiter = delimiter.gsub(/(\\ )+/, '\p{Space}*(\p{Space}|[\r\n](\p{Space}|>)*)')
+        Regexp.new(delimiter)
+      end
     end
 
     unless delimiters.empty?
-      regex = Regexp.new("^[> ]*(#{ Regexp.union(delimiters) })[[:blank:]]*[\r\n].*", Regexp::MULTILINE)
+      regex = Regexp.new("^(\\p{Space}|>)*(#{ Regexp.union(delimiters) })\\p{Space}*[\\r\\n].*", Regexp::MULTILINE)
       body = body.gsub(regex, '')
     end
     body.strip

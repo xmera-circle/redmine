@@ -7,7 +7,7 @@ require 'rails'
 require 'active_model/railtie'
 require 'active_job/railtie'
 require 'active_record/railtie'
-require 'active_storage/engine'
+# require 'active_storage/engine'
 require 'action_controller/railtie'
 require 'action_mailer/railtie'
 require 'action_view/railtie'
@@ -33,6 +33,8 @@ module RedmineApp
     config.active_record.store_full_sti_class = true
     config.active_record.default_timezone = :local
 
+    config.action_mailer.delivery_job = "ActionMailer::MailDeliveryJob"
+
     # Set Time.zone default to the specified zone and make Active Record auto-convert to this zone.
     # Run "rake -D time" for a list of tasks for finding time zone names. Default is UTC.
     # config.time_zone = 'Central Time (US & Canada)'
@@ -56,9 +58,6 @@ module RedmineApp
     # Do not include all helpers
     config.action_controller.include_all_helpers = false
 
-    # Since Redmine 4.0, boolean values are stored in sqlite3 databases as 1 and 0
-    config.active_record.sqlite3.represent_boolean_as_integer = true
-
     # Sets the Content-Length header on responses with fixed-length bodies
     config.middleware.insert_before Rack::Sendfile, Rack::ContentLength
 
@@ -80,7 +79,8 @@ module RedmineApp
     config.session_store(
       :cookie_store,
       :key => '_redmine_session',
-      :path => config.relative_url_root || '/'
+      :path => config.relative_url_root || '/',
+      :same_site => :lax
     )
 
     if File.exists?(File.join(File.dirname(__FILE__), 'additional_environment.rb'))

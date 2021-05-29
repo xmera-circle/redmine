@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Redmine - project management software
-# Copyright (C) 2006-2020  Jean-Philippe Lang
+# Copyright (C) 2006-2021  Jean-Philippe Lang
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -219,7 +219,7 @@ class Issue < ActiveRecord::Base
   end
 
   def create_or_update(*args)
-    super
+    super()
   ensure
     @status_was = nil
   end
@@ -1864,8 +1864,8 @@ class Issue < ActiveRecord::Base
       # a different project and that is not systemwide shared
       Issue.joins(:project, :fixed_version).
         where("#{Issue.table_name}.fixed_version_id IS NOT NULL" +
-          " AND #{Issue.table_name}.project_id <> #{Version.table_name}.project_id" +
-          " AND #{Version.table_name}.sharing <> 'system'").
+          " AND #{Issue.table_name}.project_id <> #{::Version.table_name}.project_id" +
+          " AND #{::Version.table_name}.sharing <> 'system'").
         where(conditions).each do |issue|
         next if issue.project.nil? || issue.fixed_version.nil?
 
@@ -1887,7 +1887,7 @@ class Issue < ActiveRecord::Base
 
   # Callback on file attachment
   def attachment_added(attachment)
-    if current_journal && !attachment.new_record?
+    if current_journal && !attachment.new_record? && !copy?
       current_journal.journalize_attachment(attachment, :added)
     end
   end

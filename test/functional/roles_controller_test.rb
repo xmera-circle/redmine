@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Redmine - project management software
-# Copyright (C) 2006-2020  Jean-Philippe Lang
+# Copyright (C) 2006-2021  Jean-Philippe Lang
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -268,6 +268,36 @@ class RolesControllerTest < Redmine::ControllerTest
     assert_select 'table.permissions thead th', 3
     assert_select 'input[name=?][type=checkbox][value=add_issues][checked=checked]', 'permissions[3][]'
     assert_select 'input[name=?][type=checkbox][value=delete_issues]:not([checked])', 'permissions[3][]'
+  end
+
+  def test_permissions_csv_export
+    get(
+      :permissions,
+      :params => {
+        :format => 'csv'
+      }
+    )
+    assert_response :success
+
+    assert_equal 'text/csv; header=present', @response.media_type
+    lines = @response.body.chomp.split("\n")
+    # Number of lines
+    permissions = Redmine::AccessControl.permissions - Redmine::AccessControl.public_permissions
+    permissions = permissions.group_by{|p| p.project_module.to_s}.sort.collect(&:last).flatten
+    assert_equal permissions.size + 1, lines.size
+    # Header
+    assert_equal 'Module,Permissions,Manager,Developer,Reporter,Non member,Anonymous', lines.first
+    # Details
+    to_test = {
+      :add_project => '"",Create project,Yes,No,No,No,""',
+      :add_issue_notes => 'Issue tracking,Add notes,Yes,Yes,Yes,Yes,Yes',
+      :manage_wiki => 'Wiki,Manage wiki,Yes,No,No,"",""'
+    }
+    to_test.each do |name, expected|
+      index = permissions.find_index {|p| p.name == name}
+      assert_not_nil index
+      assert_equal expected, lines[index + 1]
+    end
   end
 
   def test_update_permissions

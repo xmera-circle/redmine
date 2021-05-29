@@ -836,7 +836,6 @@ cs:
 
   text_select_mail_notifications: Vyberte akci, při které bude zasláno upozornění emailem.
   text_regexp_info: např. ^[A-Z0-9]+$
-  text_min_max_length_info: 0 znamená bez limitu
   text_project_destroy_confirmation: Jste si jisti, že chcete odstranit tento projekt a všechna související data?
   text_subprojects_destroy_warning: "Jeho podprojek(y): %{value} budou také smazány."
   text_workflow_edit: Vyberte roli a frontu k editaci průběhu práce
@@ -1140,7 +1139,7 @@ cs:
   notice_import_finished_with_errors: "%{count} z %{total} položek nemohlo být naimportováno"
   error_invalid_file_encoding: Soubor není platným souborem s kódováním %{encoding}
   error_invalid_csv_file_or_settings: Soubor není CSV soubor nebo neodpovídá
-    níže uvedenému nastavení
+    níže uvedenému nastavení (%{value})
   error_can_not_read_import_file: Chyba při čtení souboru pro import
   permission_import_issues: Import úkolů
   label_import_issues: Import úkolů
@@ -1384,12 +1383,24 @@ cs:
   error_attachment_not_found: Příloha %{name} nenalezena
   permission_delete_project: Odstranit projekt
   field_twofa_scheme: Schéma dvou-fázového ověření
-  text_user_destroy_confirmation: Are you sure you want to delete this user and remove
-    all references to them? This cannot be undone. Often, locking a user instead of
-    deleting them is the better solution. To confirm, please enter their login (%{login})
-    below.
-  text_project_destroy_enter_identifier: To confirm, please enter the project's identifier
-    (%{identifier}) below.
-  button_add_subtask: Add subtask
-  notice_invalid_watcher: 'Invalid watcher: User will not receive any notifications
-    because it does not have access to view this object.'
+  text_user_destroy_confirmation: Jste si jisti, že chcete odstranit tohoto uživatele a
+    všechny reference na něj? Tato akce nemůže být vzata zpět. Často je užamčení uživatele
+    místo jeho smazání vhodnějším řešením. Pro potvrzení, prosím zadjte níže jeho login (%{login}).
+  text_project_destroy_enter_identifier: Pro potvrzení, prosím zadejte níže identifikátor projektu
+    (%{identifier}).
+  button_add_subtask: Přidat podúkol
+  notice_invalid_watcher: 'Neplatný sledovatel: Uživatel nebude dostávat žádné notifikace,
+    protože nemá přístup pro zobrazení tohoto objektu.'
+  button_fetch_changesets: Stáhnout commity
+  permission_view_message_watchers: Zobrazení seznamu sledovatelů příspěvků
+  permission_add_message_watchers: Přidávání sledovatelů příspěvků
+  permission_delete_message_watchers: Mazání sledovatelů příspěvků
+  label_message_watchers: Sledující
+  button_copy_link: Kopírovat odkaz
+  error_invalid_authenticity_token: Neplatný token pravosti formuláře.
+  error_query_statement_invalid: Nastala chyba při vykonávání dotazu a
+    byla zaznamenána. Prosím oznamte tuto chybu svému Redmine administrátorovi.
+  permission_view_wiki_page_watchers: View wiki page watchers list
+  permission_add_wiki_page_watchers: Add wiki page watchers
+  permission_delete_wiki_page_watchers: Delete wiki page watchers
+  label_wiki_page_watchers: Watchers

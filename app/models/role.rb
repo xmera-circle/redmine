@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Redmine - project management software
-# Copyright (C) 2006-2020  Jean-Philippe Lang
+# Copyright (C) 2006-2021  Jean-Philippe Lang
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -76,7 +76,7 @@ class Role < ActiveRecord::Base
   store :settings, :accessors => [:permissions_all_trackers, :permissions_tracker_ids]
 
   validates_presence_of :name
-  validates_uniqueness_of :name
+  validates_uniqueness_of :name, :case_sensitive => true
   validates_length_of :name, :maximum => 255
   validates_inclusion_of(
     :issues_visibility,

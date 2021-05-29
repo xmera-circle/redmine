@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Redmine - project management software
-# Copyright (C) 2006-2020  Jean-Philippe Lang
+# Copyright (C) 2006-2021  Jean-Philippe Lang
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -843,7 +843,7 @@ class IssuesControllerTest < Redmine::ControllerTest
     get(:index, :params => {:format => 'csv'})
     assert_response :success
 
-    assert_equal 'text/csv', @response.media_type
+    assert_equal 'text/csv; header=present', @response.media_type
     assert response.body.starts_with?("#,")
     lines = response.body.chomp.split("\n")
     # default columns + id and project
@@ -859,7 +859,7 @@ class IssuesControllerTest < Redmine::ControllerTest
       }
     )
     assert_response :success
-    assert_equal 'text/csv', @response.media_type
+    assert_equal 'text/csv; header=present', @response.media_type
   end
 
   def test_index_csv_without_any_filters
@@ -894,7 +894,7 @@ class IssuesControllerTest < Redmine::ControllerTest
       )
       assert_response :success
     end
-    assert_equal 'text/csv', response.media_type
+    assert_equal 'text/csv; header=present', response.media_type
     headers = response.body.chomp.split("\n").first.split(',')
     assert_include 'Description', headers
     assert_include 'test_index_csv_with_description', response.body
@@ -922,7 +922,7 @@ class IssuesControllerTest < Redmine::ControllerTest
       }
     )
     assert_response :success
-    assert_equal 'text/csv', @response.media_type
+    assert_equal 'text/csv; header=present', @response.media_type
     lines = @response.body.chomp.split("\n")
     assert_include "#{issue.id},#{issue.subject},7.33", lines
   end
@@ -937,7 +937,7 @@ class IssuesControllerTest < Redmine::ControllerTest
     )
     assert_response :success
 
-    assert_equal 'text/csv', @response.media_type
+    assert_equal 'text/csv; header=present', @response.media_type
     assert_match /\A#,/, response.body
     lines = response.body.chomp.split("\n")
     assert_equal IssueQuery.new.available_inline_columns.size, lines[0].split(',').size
@@ -1035,7 +1035,7 @@ class IssuesControllerTest < Redmine::ControllerTest
           :format => 'csv'
         }
       )
-      assert_equal 'text/csv', @response.media_type
+      assert_equal 'text/csv; header=present', @response.media_type
       lines = @response.body.chomp.split("\n")
       header = lines[0]
       status = (+"\xaa\xac\xbaA").force_encoding('Big5')
@@ -1058,7 +1058,7 @@ class IssuesControllerTest < Redmine::ControllerTest
           :set_filter => 1
         }
       )
-      assert_equal 'text/csv', @response.media_type
+      assert_equal 'text/csv; header=present', @response.media_type
       lines = @response.body.chomp.split("\n")
       header = lines[0]
       issue_line = lines.find {|l| l =~ /^#{issue.id},/}
@@ -1084,7 +1084,7 @@ class IssuesControllerTest < Redmine::ControllerTest
           :set_filter => 1
         }
       )
-      assert_equal 'text/csv', @response.media_type
+      assert_equal 'text/csv; header=present', @response.media_type
       lines = @response.body.chomp.split("\n")
       assert_include "#{issue.id},1234.50,#{str1}", lines
     end
@@ -1104,7 +1104,7 @@ class IssuesControllerTest < Redmine::ControllerTest
           :set_filter => 1
         }
       )
-      assert_equal 'text/csv', @response.media_type
+      assert_equal 'text/csv; header=present', @response.media_type
       lines = @response.body.chomp.split("\n")
       assert_include "#{issue.id};1234,50;#{str1}", lines
     end
@@ -1659,7 +1659,7 @@ class IssuesControllerTest < Redmine::ControllerTest
       }
     )
     assert_response :success
-    assert_equal 'text/csv', response.media_type
+    assert_equal 'text/csv; header=present', response.media_type
     lines = response.body.chomp.split("\n")
     assert_include '1,"Related to #7, Related to #8, Blocks #11"', lines
     assert_include '2,Blocked by #12', lines
@@ -2072,6 +2072,14 @@ class IssuesControllerTest < Redmine::ControllerTest
     get(:show, :params => {:id => 1})
     assert_response :success
     assert_select 'div.issue div.description', :text => /Unable to print recipes/
+    assert_select '#content>.contextual:first-child' do
+      assert_select 'a', {:count => 1, :text => 'Edit'}
+      assert_select 'a', {:count => 0, :text => 'Log time'}
+      assert_select 'a', {:count => 0, :text => 'Watch'}
+      assert_select 'a', {:count => 0, :text => 'Copy'}
+      assert_select 'div.drdn-items a', {:count => 1, :text => 'Copy link'}
+      assert_select 'div.drdn-items a', {:count => 0, :text => 'Delete'}
+    end
     # anonymous role is allowed to add a note
     assert_select 'form#issue-form' do
       assert_select 'fieldset' do
@@ -2086,6 +2094,14 @@ class IssuesControllerTest < Redmine::ControllerTest
     @request.session[:user_id] = 2
     get(:show, :params => {:id => 1})
     assert_select 'a', :text => /Quote/
+    assert_select '#content>.contextual:first-child' do
+      assert_select 'a', {:count => 1, :text => 'Edit'}
+      assert_select 'a', {:count => 1, :text => 'Log time'}
+      assert_select 'a', {:count => 1, :text => 'Watch'}
+      assert_select 'a', {:count => 1, :text => 'Copy'}
+      assert_select 'div.drdn-items a', {:count => 1, :text => 'Copy link'}
+      assert_select 'div.drdn-items a', {:count => 1, :text => 'Delete'}
+    end
     assert_select 'form#issue-form' do
       assert_select 'fieldset' do
         assert_select 'legend', :text => 'Change properties'
@@ -3170,21 +3186,33 @@ class IssuesControllerTest < Redmine::ControllerTest
     end
   end
 
+  def test_get_new_global_should_show_all_projects
+    @request.session[:user_id] = 1
+    get :new
+
+    assert_response :success
+
+    assert_select 'select[name=?]', 'issue[project_id]' do
+      assert_select 'option[value=?]', '1'
+      assert_select 'option[value=?]', '2'
+    end
+  end
+
   def test_get_new_should_show_project_selector_for_project_with_subprojects
     @request.session[:user_id] = 2
     get(
       :new,
       :params => {
-        :project_id => 1,
+        :project_id => 3,
         :tracker_id => 1
       }
     )
     assert_response :success
     assert_select 'select[name="issue[project_id]"]' do
       assert_select 'option', 3
-      assert_select 'option[selected=selected]', :text => 'eCookbook'
+      assert_select 'option[value=?]', '1', :text => 'eCookbook'
       assert_select 'option[value=?]', '5', :text => '  » Private child of eCookbook'
-      assert_select 'option[value=?]', '3', :text => '  » eCookbook Subproject 1'
+      assert_select 'option[selected=selected][value=?]', '3', :text => '  » eCookbook Subproject 1'
 
       # user_id 2 is not allowed to add issues on project_id 4 (it's not a member)
       assert_select 'option[value=?]', '4', 0
@@ -5630,6 +5658,41 @@ class IssuesControllerTest < Redmine::ControllerTest
     assert_response :success
     reason = l(:notice_issue_not_closable_by_blocking_issue)
     assert_select 'span.icon-warning[title=?]', reason, :text => reason
+  end
+
+  def test_get_edit_should_display_visible_spent_time_custom_field
+    @request.session[:user_id] = 2
+
+    get(
+      :edit,
+      :params => {
+        :id => 13,
+      }
+    )
+
+    assert_response :success
+
+    assert_select '#issue-form select.cf_10', 1
+  end
+
+  def test_get_edit_should_not_display_spent_time_custom_field_not_visible
+    cf = TimeEntryCustomField.find(10)
+    cf.visible = false
+    cf.role_ids = [1]
+    cf.save!
+
+    @request.session[:user_id] = 2
+
+    get(
+      :edit,
+      :params => {
+        :id => 13,
+      }
+    )
+
+    assert_response :success
+
+    assert_select '#issue-form select.cf_10', 0
   end
 
   def test_update_form_for_existing_issue

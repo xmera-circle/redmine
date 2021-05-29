@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Redmine - project management software
-# Copyright (C) 2006-2020  Jean-Philippe Lang
+# Copyright (C) 2006-2021  Jean-Philippe Lang
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -521,6 +521,7 @@ class ApplicationHelperTest < Redmine::HelperTest
       'user:JSMITH'                 => link_to_user(User.find_by_id(2)),
       'user#2'                      => link_to_user(User.find_by_id(2)),
       '@jsmith'                     => link_to_user(User.find_by_id(2)),
+      '@jsmith.'                    => "#{link_to_user(User.find_by_id(2))}.",
       '@JSMITH'                     => link_to_user(User.find_by_id(2)),
       '@abcd@example.com'           => link_to_user(User.find_by_id(u_email_id)),
       'user:abcd@example.com'       => link_to_user(User.find_by_id(u_email_id)),

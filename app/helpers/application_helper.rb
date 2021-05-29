@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Redmine - project management software
-# Copyright (C) 2006-2020  Jean-Philippe Lang
+# Copyright (C) 2006-2021  Jean-Philippe Lang
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -764,7 +764,7 @@ module ApplicationHelper
 
   # Sets the html title
   # Returns the html title when called without arguments
-  # Current project name and app_title and automatically appended
+  # Current project name and app_title are automatically appended
   # Exemples:
   #   html_title 'Foo', 'Bar'
   #   html_title # => 'Foo - Bar - My Project - Redmine'
@@ -976,7 +976,7 @@ module ApplicationHelper
           wiki_page = link_project.wiki.find_page(page)
           url =
             if anchor.present? && wiki_page.present? &&
-                 (obj.is_a?(WikiContent) || obj.is_a?(WikiContent::Version)) &&
+                 (obj.is_a?(WikiContent) || obj.is_a?(WikiContentVersion)) &&
                  obj.page == wiki_page
               "##{anchor}"
             else
@@ -1283,7 +1283,7 @@ module ApplicationHelper
               )|
               (
               (?<sep4>@)
-              (?<identifier3>[A-Za-z0-9_\-@\.]*)
+              (?<identifier3>[A-Za-z0-9_\-@\.]*?)
               )
             )
             (?=
@@ -1330,7 +1330,7 @@ module ApplicationHelper
       anchor = sanitize_anchor_name(item)
       # used for single-file wiki export
       if options[:wiki_links] == :anchor && (obj.is_a?(WikiContent) ||
-           obj.is_a?(WikiContent::Version))
+           obj.is_a?(WikiContentVersion))
         anchor = "#{obj.page.title}_#{anchor}"
       end
       @heading_anchors[anchor] ||= 0
@@ -1702,8 +1702,7 @@ module ApplicationHelper
   # Returns the javascript tags that are included in the html layout head
   def javascript_heads
     tags = javascript_include_tag(
-      'jquery-3.5.1-ui-1.12.1-ujs-5.2.3',
-      'jquery-migrate-3.3.2.min.js',
+      'jquery-3.5.1-ui-1.12.1-ujs-6.1.3.1',
       'tribute-5.1.3.min',
       'tablesort-5.2.1.min.js',
       'tablesort-5.2.1.number.min.js',
@@ -1804,7 +1803,8 @@ module ApplicationHelper
 
   def autocomplete_data_sources(project)
     {
-      issues: auto_complete_issues_path(:project_id => project, :q => '')
+      issues: auto_complete_issues_path(:project_id => project, :q => ''),
+      wiki_pages: auto_complete_wiki_pages_path(:project_id => project, :q => '')
     }
   end
 
@@ -1814,6 +1814,14 @@ module ApplicationHelper
       "rm = window.rm || {};" \
       "rm.AutoComplete = rm.AutoComplete || {};" \
       "rm.AutoComplete.dataSources = '#{data_sources.to_json}';"
+    )
+  end
+
+  def copy_object_url_link(url)
+    link_to_function(
+      l(:button_copy_link), 'copyTextToClipboard(this);',
+      class: 'icon icon-copy-link',
+      data: {'clipboard-text' => url}
     )
   end
 

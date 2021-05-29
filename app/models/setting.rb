@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Redmine - project management software
-# Copyright (C) 2006-2020  Jean-Philippe Lang
+# Copyright (C) 2006-2021  Jean-Philippe Lang
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -54,7 +54,6 @@ class Setting < ActiveRecord::Base
                   windows-1258
                   windows-31j
                   ISO-2022-JP
-                  ISO-2022-KR
                   ISO-8859-1
                   ISO-8859-2
                   ISO-8859-3
@@ -76,7 +75,6 @@ class Setting < ActiveRecord::Base
                   CP932
                   GB18030
                   GBK
-                  ISCII91
                   EUC-KR
                   Big5
                   Big5-HKSCS
@@ -87,6 +85,7 @@ class Setting < ActiveRecord::Base
 
   validates_uniqueness_of(
     :name,
+    :case_sensitive => true,
     :if => Proc.new do |setting|
       setting.new_record? || setting.name_changed?
     end

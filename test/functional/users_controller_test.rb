@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Redmine - project management software
-# Copyright (C) 2006-2020  Jean-Philippe Lang
+# Copyright (C) 2006-2021  Jean-Philippe Lang
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -85,7 +85,7 @@ class UsersControllerTest < Redmine::ControllerTest
       assert_include 'Authenticator app', response.body.split("\n").second
       assert_include 'disabled', response.body.split("\n").third
 
-      assert_equal 'text/csv', @response.media_type
+      assert_equal 'text/csv; header=present', @response.media_type
     end
   end
 
@@ -103,7 +103,7 @@ class UsersControllerTest < Redmine::ControllerTest
 
       assert_include 'float field;date field', response.body
       assert_include '2,10;10/01/2020', response.body
-      assert_equal 'text/csv', @response.media_type
+      assert_equal 'text/csv; header=present', @response.media_type
     end
   end
 
@@ -115,7 +115,7 @@ class UsersControllerTest < Redmine::ControllerTest
       assert_equal User.logged.status(3).count, response.body.chomp.split("\n").size - 1
       assert_include 'locked', response.body
       assert_not_include 'active', response.body
-      assert_equal 'text/csv', @response.media_type
+      assert_equal 'text/csv; header=present', @response.media_type
     end
   end
 
@@ -125,7 +125,7 @@ class UsersControllerTest < Redmine::ControllerTest
 
     assert_equal User.logged.like('John').count, response.body.chomp.split("\n").size - 1
     assert_include 'John', response.body
-    assert_equal 'text/csv', @response.media_type
+    assert_equal 'text/csv; header=present', @response.media_type
   end
 
   def test_index_csv_with_group_filter
@@ -133,7 +133,7 @@ class UsersControllerTest < Redmine::ControllerTest
     assert_response :success
 
     assert_equal Group.find(10).users.count, response.body.chomp.split("\n").size - 1
-    assert_equal 'text/csv', @response.media_type
+    assert_equal 'text/csv; header=present', @response.media_type
   end
 
   def test_show
@@ -590,6 +590,24 @@ class UsersControllerTest < Redmine::ControllerTest
     assert_mail_body_match 'newpass123', mail
   end
 
+  def test_update_with_password_change_by_admin_should_send_a_security_notification
+    with_settings :bcc_recipients => '0' do
+      ActionMailer::Base.deliveries.clear
+      user = User.find_by(login: 'jsmith')
+
+      put :update, :params => {
+        :id => user.id,
+        :user => {:password => 'newpass123', :password_confirmation => 'newpass123'}
+      }
+
+      assert_equal 1, ActionMailer::Base.deliveries.size
+      mail = ActionMailer::Base.deliveries.last
+      assert_equal [user.mail], mail.to
+      assert_match 'Security notification', mail.subject
+      assert_mail_body_match 'Your password has been changed.', mail
+    end
+  end
+
   def test_update_with_generate_password_should_email_the_password
     ActionMailer::Base.deliveries.clear
     with_settings :bcc_recipients => '1' do
@@ -913,6 +931,29 @@ class UsersControllerTest < Redmine::ControllerTest
           [mail.bcc, mail.cc].flatten.include?(admin.mail)
         end
       )
+    end
+  end
+
+  def test_destroy_without_unsubscribe_is_denied
+    user = User.find(2)
+    user.update(admin: true) # Create other admin so self can be deleted
+    @request.session[:user_id] = user.id
+    with_settings unsubscribe: 0 do
+      assert_no_difference 'User.count' do
+        delete :destroy, params: {id: user.id}
+      end
+      assert_response 422
+    end
+  end
+
+  def test_destroy_last_admin_is_denied
+    user = User.find(1)
+    @request.session[:user_id] = user.id
+    with_settings unsubscribe: 1 do
+      assert_no_difference 'User.count' do
+        delete :destroy, params: {id: user.id}
+      end
+      assert_response 422
     end
   end
 end

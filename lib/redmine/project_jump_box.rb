@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Redmine - project management software
-# Copyright (C) 2006-2020  Jean-Philippe Lang
+# Copyright (C) 2006-2021  Jean-Philippe Lang
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -31,6 +31,7 @@ module Redmine
     def recently_used_projects
       project_ids = recently_used_project_ids
       Project.where(id: project_ids).
+        visible.
         index_by(&:id).
         values_at(*project_ids). # sort according to stored order
         compact

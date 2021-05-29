@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Redmine - project management software
-# Copyright (C) 2006-2020  Jean-Philippe Lang
+# Copyright (C) 2006-2021  Jean-Philippe Lang
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -219,6 +219,33 @@ class MailerTest < ActiveSupport::TestCase
     assert_equal issue.author.login, mail.header['X-Redmine-Sender'].to_s
   end
 
+  def test_email_headers_should_not_include_assignee_when_not_assigned
+    issue = Issue.find(6)
+    issue.init_journal(User.current)
+    issue.update(:status_id => 4)
+    issue.update(:assigned_to_id => nil)
+    mail = last_email
+    assert_not mail.header['X-Redmine-Issue-Assignee']
+  end
+
+  def test_email_headers_should_include_assignee_when_assigned
+    issue = Issue.find(6)
+    issue.init_journal(User.current)
+    issue.update(:assigned_to_id => 2)
+    mail = last_email
+    assert_equal 'jsmith', mail.header['X-Redmine-Issue-Assignee'].to_s
+  end
+
+  def test_email_headers_should_include_assignee_if_assigned_to_group
+    issue = Issue.find(6)
+    with_settings :issue_group_assignment => 1 do
+      issue.init_journal(User.current)
+      issue.update(:assigned_to_id => 10)
+    end
+    mail = last_email
+    assert_equal 'Group (A Team)', mail.header['X-Redmine-Issue-Assignee'].to_s
+  end
+
   def test_plain_text_mail
     Setting.plain_text_mail = 1
     journal = Journal.find(2)
@@ -386,11 +413,10 @@ class MailerTest < ActiveSupport::TestCase
     issue = Issue.find(3)
     user = User.find(1)
     %w(UTC Paris Tokyo).each do |zone|
-      Time.zone = zone
-      assert_match /^redmine\.issue-3\.20060719190727\.1@example\.net/, Mailer.token_for(issue, user)
+      Time.use_zone(zone) do
+        assert_match /^redmine\.issue-3\.20060719190727\.1@example\.net/, Mailer.token_for(issue, user)
+      end
     end
-  ensure
-    Time.zone = zone_was
   end
 
   test "#issue_add should notify project members" do
@@ -1064,14 +1090,14 @@ class MailerTest < ActiveSupport::TestCase
   end
 
   def test_with_synched_deliveries_should_yield_with_synced_deliveries
-    ActionMailer::DeliveryJob.queue_adapter = ActiveJob::QueueAdapters::AsyncAdapter.new
+    ActionMailer::MailDeliveryJob.queue_adapter = ActiveJob::QueueAdapters::AsyncAdapter.new
 
     Mailer.with_synched_deliveries do
-      assert_kind_of ActiveJob::QueueAdapters::InlineAdapter, ActionMailer::DeliveryJob.queue_adapter
+      assert_kind_of ActiveJob::QueueAdapters::InlineAdapter, ActionMailer::MailDeliveryJob.queue_adapter
     end
-    assert_kind_of ActiveJob::QueueAdapters::AsyncAdapter, ActionMailer::DeliveryJob.queue_adapter
+    assert_kind_of ActiveJob::QueueAdapters::AsyncAdapter, ActionMailer::MailDeliveryJob.queue_adapter
   ensure
-    ActionMailer::DeliveryJob.queue_adapter = ActiveJob::QueueAdapters::InlineAdapter.new
+    ActionMailer::MailDeliveryJob.queue_adapter = ActiveJob::QueueAdapters::InlineAdapter.new
   end
 
   def test_email_addresses_should_keep_addresses

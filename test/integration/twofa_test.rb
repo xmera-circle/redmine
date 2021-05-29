@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Redmine - project management software
-# Copyright (C) 2006-2020  Jean-Philippe Lang
+# Copyright (C) 2006-2021  Jean-Philippe Lang
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -27,6 +27,32 @@ class TwofaTest < Redmine::IntegrationTest
       log_user('jsmith', 'jsmith')
       follow_redirect!
       assert_redirected_to "/my/twofa/totp/activate/confirm"
+    end
+  end
+
+  test 'should require to change password first when must_change_passwd is true' do
+    User.find_by(login: 'jsmith').update_attribute(:must_change_passwd, true)
+    with_settings twofa: '2' do
+      log_user('jsmith', 'jsmith')
+      follow_redirect!
+      assert_redirected_to '/my/password'
+      follow_redirect!
+      # Skip the before action check_twofa_activation for '/my/password'
+      # to avoid redirect loop
+      assert_response :success
+    end
+  end
+
+  test 'should allow logout even if twofa setup is required' do
+    with_settings twofa: '2' do
+      log_user('jsmith', 'jsmith')
+      follow_redirect!
+      assert_redirected_to '/my/twofa/totp/activate/confirm'
+      follow_redirect!
+      post '/logout'
+      assert_redirected_to '/'
+      follow_redirect!
+      assert_response :success
     end
   end
 

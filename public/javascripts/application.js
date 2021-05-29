@@ -1,5 +1,11 @@
 /* Redmine - project management software
-   Copyright (C) 2006-2020  Jean-Philippe Lang */
+   Copyright (C) 2006-2021  Jean-Philippe Lang */
+
+function sanitizeHTML(string) {
+  var temp = document.createElement('span');
+  temp.textContent = string;
+  return temp.innerHTML;
+}
 
 function checkAll(id, checked) {
   $('#'+id).find('input[type=checkbox]:enabled').prop('checked', checked);
@@ -364,15 +370,29 @@ function showIssueHistory(journal, url) {
 
   switch(journal) {
     case 'notes':
+      tab_content.find('.journal').show();
       tab_content.find('.journal:not(.has-notes)').hide();
-      tab_content.find('.journal.has-notes').show();
+      tab_content.find('.journal .wiki').show();
+      tab_content.find('.journal .contextual .journal-actions').show();
+
+      // always show thumbnails in notes tab
+      var thumbnails = tab_content.find('.journal .thumbnails');
+      thumbnails.show();
+      // show journals without notes, but with thumbnails
+      thumbnails.parents('.journal').show();
       break;
     case 'properties':
-      tab_content.find('.journal.has-notes').hide();
-      tab_content.find('.journal:not(.has-notes)').show();
+      tab_content.find('.journal').show();
+      tab_content.find('.journal:not(.has-details)').hide();
+      tab_content.find('.journal .wiki').hide();
+      tab_content.find('.journal .thumbnails').hide();
+      tab_content.find('.journal .contextual .journal-actions').hide();
       break;
     default:
       tab_content.find('.journal').show();
+      tab_content.find('.journal .wiki').show();
+      tab_content.find('.journal .thumbnails').show();
+      tab_content.find('.journal .contextual .journal-actions').show();
   }
 
   return false;
@@ -563,6 +583,23 @@ function randomKey(size) {
   return key;
 }
 
+function copyTextToClipboard(target) {
+  if (target) {
+    var temp = document.createElement('textarea');
+    temp.value = target.getAttribute('data-clipboard-text');
+    document.body.appendChild(temp);
+    temp.select();
+    document.execCommand('copy');
+    if (temp.parentNode) {
+      temp.parentNode.removeChild(temp);
+    }
+    if ($(target).closest('.drdn.expanded').length) {
+      $(target).closest('.drdn.expanded').removeClass("expanded");
+    }
+  }
+  return false;
+}
+
 function updateIssueFrom(url, el) {
   $('#all_attributes input, #all_attributes textarea, #all_attributes select').each(function(){
     $(this).data('valuebeforeupdate', $(this).val());
@@ -685,7 +722,7 @@ $(document).ready(function(){
 
   // This variable is used to focus selected project
   var selected;
-  $(".drdn-trigger").click(function(e){
+  $(document).on('click', '.drdn-trigger', function(e){
     var drdn = $(this).closest(".drdn");
     if (drdn.hasClass("expanded")) {
       drdn.removeClass("expanded");
@@ -996,7 +1033,7 @@ $(document).ready(function(){
 
   $('#history .tabs').on('click', 'a', function(e){
     var tab = $(e.target).attr('id').replace('tab-','');
-    document.cookie = 'history_last_tab=' + tab
+    document.cookie = 'history_last_tab=' + tab + '; SameSite=Lax'
   });
 });
 
@@ -1113,24 +1150,51 @@ function inlineAutoComplete(element) {
     };
 
     const tribute = new Tribute({
-      trigger: '#',
-      values: function (text, cb) {
-        if (event.target.type === 'text' && $(element).attr('autocomplete') != 'off') {
-          $(element).attr('autocomplete', 'off');
+      collection: [
+        {
+          trigger: '#',
+          values: function (text, cb) {
+            if (event.target.type === 'text' && $(element).attr('autocomplete') != 'off') {
+              $(element).attr('autocomplete', 'off');
+            }
+            remoteSearch(getDataSource('issues') + text, function (issues) {
+              return cb(issues);
+            });
+          },
+          lookup: 'label',
+          fillAttr: 'label',
+          requireLeadingSpace: true,
+          selectTemplate: function (issue) {
+            return '#' + issue.original.id;
+          },
+          menuItemTemplate: function (issue) {
+            return sanitizeHTML(issue.original.label);
+          },
+          noMatchTemplate: function () {
+            return '<span style:"visibility: hidden;"></span>';
+          }
+        },
+        {
+          trigger: '[[',
+          values: function (text, cb) {
+            remoteSearch(getDataSource('wiki_pages') + text, function (wikiPages) {
+              return cb(wikiPages);
+            });
+          },
+          lookup: 'label',
+          fillAttr: 'label',
+          requireLeadingSpace: true,
+          selectTemplate: function (wikiPage) {
+            return '[[' + wikiPage.original.value + ']]';
+          },
+          menuItemTemplate: function (wikiPage) {
+            return sanitizeHTML(wikiPage.original.label);
+          },
+          noMatchTemplate: function () {
+            return '<span style:"visibility: hidden;"></span>';
+          }
         }
-        remoteSearch(getDataSource('issues') + text, function (issues) {
-          return cb(issues);
-        });
-      },
-      lookup: 'label',
-      fillAttr: 'label',
-      requireLeadingSpace: true,
-      selectTemplate: function (issue) {
-        return '#' + issue.original.id;
-      },
-      noMatchTemplate: function () {
-        return '<span style:"visibility: hidden;"></span>';
-      }
+      ]
     });
 
     tribute.attach(element);

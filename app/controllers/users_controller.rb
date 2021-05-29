@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Redmine - project management software
-# Copyright (C) 2006-2020  Jean-Philippe Lang
+# Copyright (C) 2006-2021  Jean-Philippe Lang
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -153,7 +153,8 @@ class UsersController < ApplicationController
   end
 
   def update
-    if params[:user][:password].present? && (@user.auth_source_id.nil? || params[:user][:auth_source_id].blank?)
+    is_updating_password = params[:user][:password].present? && (@user.auth_source_id.nil? || params[:user][:auth_source_id].blank?)
+    if is_updating_password
       @user.password, @user.password_confirmation = params[:user][:password], params[:user][:password_confirmation]
     end
     @user.safe_attributes = params[:user]
@@ -165,6 +166,7 @@ class UsersController < ApplicationController
     if @user.save
       @user.pref.save
 
+      Mailer.deliver_password_updated(@user, User.current) if is_updating_password
       if was_activated
         Mailer.deliver_account_activated(@user)
       elsif @user.active? && params[:send_information] && @user != User.current
@@ -192,6 +194,8 @@ class UsersController < ApplicationController
   end
 
   def destroy
+    return render_error status: 422 if @user == User.current && !@user.own_account_deletable?
+
     if api_request? || params[:lock] || params[:confirm] == @user.login
       if params[:lock]
         @user.update_attribute :status, User::STATUS_LOCKED

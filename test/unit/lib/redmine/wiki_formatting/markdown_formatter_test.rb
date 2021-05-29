@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Redmine - project management software
-# Copyright (C) 2006-2020  Jean-Philippe Lang
+# Copyright (C) 2006-2021  Jean-Philippe Lang
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -178,6 +178,75 @@ class Redmine::WikiFormatting::MarkdownFormatterTest < ActionView::TestCase
       [STR_WITH_PRE[0..1], "New text"].flatten.join("\n\n"),
       @formatter.new(text).update_section(3, replacement)
     )
+  end
+
+  STR_SETEXT_LIKE = [
+    # 0
+    <<~STR.chomp,
+      # Title
+    STR
+    # 1
+    <<~STR.chomp,
+      ## Heading 2
+
+      Thematic breaks - not be confused with setext headings.
+
+      ---
+
+      Preceding CRLF is the default for web-submitted data.
+      \r
+      ---\r
+      \r
+
+      A space-only line does not mean much.
+      \s
+      ---
+
+      End of thematic breaks.
+    STR
+    # 2
+    <<~STR.chomp,
+      ## Heading 2
+      Nulla nunc nisi, egestas in ornare vel, posuere ac libero.
+    STR
+  ]
+
+  STR_RARE_SETEXT_LIKE = [
+    # 0
+    <<~STR.chomp,
+      # Title
+    STR
+    # 1
+    <<~STR.chomp,
+      ## Heading 2
+
+      - item
+      one
+      -
+      not a heading
+    STR
+    # 2
+    <<~STR.chomp,
+      ## Heading 2
+      Nulla nunc nisi, egestas in ornare vel, posuere ac libero.
+    STR
+  ]
+
+  def test_get_section_should_ignore_setext_like_text
+    text = STR_SETEXT_LIKE.join("\n\n")
+    assert_section_with_hash STR_SETEXT_LIKE[1], text, 2
+    assert_section_with_hash STR_SETEXT_LIKE[2], text, 3
+  end
+
+  def test_get_section_should_ignore_rare_setext_like_text
+    begin
+      text = STR_RARE_SETEXT_LIKE.join("\n\n")
+      assert_section_with_hash STR_RARE_SETEXT_LIKE[1], text, 2
+      assert_section_with_hash STR_RARE_SETEXT_LIKE[2], text, 3
+    rescue Minitest::Assertion => e
+      skip "Section extraction is currently limited, see #35037. Known error: #{e.message}"
+    end
+    assert_not "This test should be adjusted when fixing the known error."
   end
 
   def test_should_support_underlined_text

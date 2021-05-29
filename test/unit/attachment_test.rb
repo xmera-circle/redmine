@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Redmine - project management software
-# Copyright (C) 2006-2020  Jean-Philippe Lang
+# Copyright (C) 2006-2021  Jean-Philippe Lang
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -149,6 +149,19 @@ class AttachmentTest < ActiveSupport::TestCase
                          :file => mock_file_with_options(:original_filename => "test.png"),
                          :author => User.find(1))
       assert !a.save
+    end
+  end
+
+  def test_extension_update_should_be_validated_against_denied_extensions
+    with_settings :attachment_extensions_denied => "txt, png" do
+      a = Attachment.new(:container => Issue.find(1),
+                         :file => mock_file_with_options(:original_filename => "test.jpeg"),
+                         :author => User.find(1))
+      assert_save a
+
+      b = Attachment.find(a.id)
+      b.filename = "test.png"
+      assert !b.save
     end
   end
 
@@ -471,6 +484,19 @@ class AttachmentTest < ActiveSupport::TestCase
     assert_equal false, string.valid_encoding?
 
     Attachment.latest_attach(Attachment.limit(2).to_a, string)
+  end
+
+  def test_latest_attach_should_support_unicode_case_folding
+    a_capital = Attachment.create!(
+      :author => User.find(1),
+      :file => mock_file(:filename => 'Ā.TXT')
+    )
+    a_small = Attachment.create!(
+      :author => User.find(1),
+      :file => mock_file(:filename => 'ā.txt')
+    )
+
+    assert_equal(a_small, Attachment.latest_attach([a_capital, a_small], 'Ā.TXT'))
   end
 
   def test_thumbnailable_should_be_true_for_images

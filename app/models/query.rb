@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Redmine - project management software
-# Copyright (C) 2006-2020  Jean-Philippe Lang
+# Copyright (C) 2006-2021  Jean-Philippe Lang
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -20,17 +20,15 @@
 require 'redmine/sort_criteria'
 
 class QueryColumn
-  attr_accessor :name, :groupable, :totalable, :default_order
-  attr_writer   :sortable
+  attr_accessor :name, :totalable, :default_order
+  attr_writer   :sortable, :groupable
+
   include Redmine::I18n
 
   def initialize(name, options={})
     self.name = name
     self.sortable = options[:sortable]
     self.groupable = options[:groupable] || false
-    if groupable == true
-      self.groupable = name.to_s
-    end
     self.totalable = options[:totalable] || false
     self.default_order = options[:default_order]
     @inline = options.key?(:inline) ? options[:inline] : true
@@ -49,9 +47,13 @@ class QueryColumn
     end
   end
 
+  def groupable?
+    @groupable
+  end
+
   # Returns true if the column is sortable, otherwise false
   def sortable?
-    !@sortable.nil?
+    @sortable.present?
   end
 
   def sortable
@@ -82,13 +84,19 @@ class QueryColumn
   def css_classes
     name
   end
+
+  def group_by_statement
+    name.to_s
+  end
 end
 
 class TimestampQueryColumn < QueryColumn
-  def groupable
-    if @groupable
-      Redmine::Database.timestamp_to_date(sortable, User.current.time_zone)
-    end
+  def groupable?
+    group_by_statement.present?
+  end
+
+  def group_by_statement
+    Redmine::Database.timestamp_to_date(sortable, User.current.time_zone)
   end
 
   def group_value(object)
@@ -121,10 +129,17 @@ class QueryCustomFieldColumn < QueryColumn
   def initialize(custom_field, options={})
     self.name = "cf_#{custom_field.id}".to_sym
     self.sortable = custom_field.order_statement || false
-    self.groupable = custom_field.group_statement || false
     self.totalable = options.key?(:totalable) ? !!options[:totalable] : custom_field.totalable?
     @inline = custom_field.full_width_layout? ? false : true
     @cf = custom_field
+  end
+
+  def groupable?
+    group_by_statement.present?
+  end
+
+  def group_by_statement
+    @cf.group_statement
   end
 
   def caption
@@ -164,7 +179,7 @@ class QueryAssociationCustomFieldColumn < QueryCustomFieldColumn
   def initialize(association, custom_field, options={})
     super(custom_field, options)
     self.name = "#{association}.cf_#{custom_field.id}".to_sym
-    # TODO: support sorting/grouping by association custom field
+    # TODO: support sorting by association custom field
     self.sortable = false
     self.groupable = false
     @association = association
@@ -178,6 +193,11 @@ class QueryAssociationCustomFieldColumn < QueryCustomFieldColumn
 
   def css_classes
     @css_classes ||= "#{@association}_cf_#{@cf.id} #{@cf.field_format}"
+  end
+
+  # TODO: support grouping by association custom field
+  def groupable?
+    false
   end
 end
 
@@ -217,6 +237,9 @@ end
 
 class Query < ActiveRecord::Base
   class StatementInvalid < ::ActiveRecord::StatementInvalid
+  end
+
+  class QueryError < StandardError
   end
 
   include Redmine::SubclassFactory
@@ -511,7 +534,7 @@ class Query < ActiveRecord::Base
       if has_filter?(field) || !filter.remote
         options[:values] = filter.values
         if options[:values] && values_for(field)
-          missing = Array(values_for(field)).select(&:present?) - options[:values].map(&:last)
+          missing = Array(values_for(field)).select(&:present?) - options[:values].map{|v| v[1]}
           if missing.any? && respond_to?(method = "find_#{field}_filter_values")
             options[:values] += send(method, missing)
           end
@@ -615,7 +638,7 @@ class Query < ActiveRecord::Base
 
   def watcher_values
     watcher_values = [["<< #{l(:label_me)} >>", "me"]]
-    if User.current.allowed_to?(:view_issue_watchers, self.project)
+    if User.current.allowed_to?(:view_issue_watchers, self.project, global: true)
       watcher_values +=
         principals.sort_by(&:status).
           collect{|s| [s.name, s.id.to_s, l("status_#{User::LABEL_BY_STATUS[s.status]}")]}
@@ -741,7 +764,7 @@ class Query < ActiveRecord::Base
 
   # Returns an array of columns that can be used to group the results
   def groupable_columns
-    available_columns.select {|c| c.groupable}
+    available_columns.select(&:groupable?)
   end
 
   # Returns a Hash of columns and the key for sorting
@@ -889,11 +912,11 @@ class Query < ActiveRecord::Base
   end
 
   def group_by_column
-    groupable_columns.detect {|c| c.groupable && c.name.to_s == group_by}
+    groupable_columns.detect {|c| c.groupable? && c.name.to_s == group_by}
   end
 
   def group_by_statement
-    group_by_column.try(:groupable)
+    group_by_column.try(:group_by_statement)
   end
 
   def project_statement
@@ -1123,7 +1146,7 @@ class Query < ActiveRecord::Base
       assoc = $1
       customized_key = "#{assoc}_id"
       customized_class = queried_class.reflect_on_association(assoc.to_sym).klass.base_class rescue nil
-      raise "Unknown #{queried_class.name} association #{assoc}" unless customized_class
+      raise QueryError, "Unknown #{queried_class.name} association #{assoc}" unless customized_class
     end
     where = sql_for_field(field, operator, value, db_table, db_field, true)
     if /[<>]/.match?(operator)
@@ -1400,7 +1423,7 @@ class Query < ActiveRecord::Base
     when "$"
       sql = sql_contains("#{db_table}.#{db_field}", value.first, :ends_with => true)
     else
-      raise "Unknown query operator #{operator}"
+      raise QueryError, "Unknown query operator #{operator}"
     end
 
     return sql

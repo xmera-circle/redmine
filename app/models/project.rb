@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Redmine - project management software
-# Copyright (C) 2006-2020  Jean-Philippe Lang
+# Copyright (C) 2006-2021  Jean-Philippe Lang
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -72,7 +72,7 @@ class Project < ActiveRecord::Base
                 :author => nil
 
   validates_presence_of :name, :identifier
-  validates_uniqueness_of :identifier, :if => proc {|p| p.identifier_changed?}
+  validates_uniqueness_of :identifier, :if => proc {|p| p.identifier_changed?}, :case_sensitive => true
   validates_length_of :name, :maximum => 255
   validates_length_of :homepage, :maximum => 255
   validates_length_of :identifier, :maximum => IDENTIFIER_MAX_LENGTH
@@ -318,8 +318,8 @@ class Project < ActiveRecord::Base
   def commit_logtime_activity
     activity_id = Setting.commit_logtime_activity_id.to_i
     if activity_id > 0
-      activities.
-        find_by('id = ? OR parent_id = ?', activity_id, activity_id)
+      activities
+        .find_by('id = ? OR parent_id = ?', activity_id, activity_id)
     end
   end
 
@@ -555,14 +555,6 @@ class Project < ActiveRecord::Base
       end
       h
     end
-  end
-
-  # TODO: Remove this method in Redmine 5.0
-  def members_by_role
-    ActiveSupport::Deprecation.warn(
-      "Project#members_by_role will be removed. Use Project#principals_by_role instead."
-    )
-    principals_by_role
   end
 
   # Adds user as a project member with the default role

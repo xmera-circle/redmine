@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Redmine - project management software
-# Copyright (C) 2006-2020  Jean-Philippe Lang
+# Copyright (C) 2006-2021  Jean-Philippe Lang
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -294,6 +294,15 @@ module Redmine
         rescue HgCommandAborted
           # means not found or cannot be annotated
           Annotate.new
+        end
+
+        def valid_name?(name)
+          return false unless name.nil? || name.is_a?(String)
+
+          # Mercurials names don't need to be checked further as its CLI
+          # interface is restrictive enough to reject any invalid names on its
+          # own.
+          true
         end
 
         class Revision < Redmine::Scm::Adapters::Revision

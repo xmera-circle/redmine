@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Redmine - project management software
-# Copyright (C) 2006-2020  Jean-Philippe Lang
+# Copyright (C) 2006-2021  Jean-Philippe Lang
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -97,7 +97,7 @@ class Journal < ActiveRecord::Base
   def save(*args)
     journalize_changes
     # Do not save an empty journal
-    (details.empty? && notes.blank?) ? false : super
+    (details.empty? && notes.blank?) ? false : super()
   end
 
   # Returns journal details that are visible to user
