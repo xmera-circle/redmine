@@ -61,5 +61,5 @@ Rails.application.configure do
   # config.action_cable.disable_request_forgery_protection = true
 
   # [xmera]
-  config.hosts << devmac
+  config.hosts << 'devmac:3000'
 end
