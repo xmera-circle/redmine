@@ -66,6 +66,6 @@ Rails.application.configure do
     Bullet.skip_user_in_notification = true
   end
 
-  # [xmera]
-  config.hosts << 'devmac:3000'
+  ## always required with Rails 6
+  config.hosts << "devmac" # [xmera]
 end
