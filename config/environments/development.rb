@@ -67,5 +67,5 @@ Rails.application.configure do
   end
 
   # [xmera]
-  config.hosts << devmac
+  config.hosts << 'devmac:3000'
 end
