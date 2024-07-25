@@ -65,4 +65,7 @@ Rails.application.configure do
     Bullet.rails_logger = true
     Bullet.skip_user_in_notification = true
   end
+
+  # [xmera]
+  config.hosts << devmac
 end
