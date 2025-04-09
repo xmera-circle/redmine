@@ -54,3 +54,4 @@ yarn-error.log
 patches/
 *patch
 gem_home
+lefthook.yml
