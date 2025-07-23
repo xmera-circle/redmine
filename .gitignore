@@ -46,3 +46,9 @@
 
 /node_modules
 yarn-error.log
+
+# [xmera]
+.history 
+gem_home
+*.patch 
+
